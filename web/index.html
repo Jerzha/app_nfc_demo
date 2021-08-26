@@ -1,0 +1,90 @@
+<head>
+    <script type="text/javascript">
+        function getPlatform() {
+            let u = navigator.userAgent;
+            let isAndroid = u.indexOf('Android') > -1 || u.indexOf('Adr') > -1;
+            let isIOS = !!u.match(/\(i[^;]+;( U;)? CPU.+Mac OS X/);
+            if(isAndroid) {
+                this.debug('This platform is Android.');
+                return 'Android';
+            } else if (isIOS){
+                this.debug('This platform is is iOS.');
+                return 'iOS';
+            } else {
+                this.debug('This platform is PC.');
+                return 'PC';
+            }
+        }
+
+        function debug(text) {
+            var node = document.createElement('LI');
+            var textNode = document.createTextNode(text);
+            node.appendChild(textNode);
+            document.body.appendChild(node);
+        }
+
+        function onSchemeFailed() {
+            this.debug("Scheme open failed!");
+            var platform = getPlatform();
+            if (platform == "iOS") {
+                this.debug("Now jump to appstore for downloading app ...");
+                location.href = "https://www.apple.com/app-store";
+            } else if (platform == "Android") {
+                this.debug("Now downloading apk ...");
+                location.href = "https://gitee.com/jerzha/app_nfc_demo/attach_files/812821/download/app-debug.apk";
+            }
+        }
+
+        var timer = null;
+        function openByScheme(wakeupUrl, onBeforeWakeup, onWakeupFail) {
+            this.debug("Trying to open app ! waiting 10 secends ...");
+            var ifm = document.createElement('iframe');
+            ifm.setAttribute('src', wakeupUrl);
+            ifm.setAttribute('style', 'display:none');
+            document.body.appendChild(ifm);
+            onBeforeWakeup && onBeforeWakeup();
+
+            var currentTime = Date.now();
+
+            timer = setTimeout(function() {
+                var nowTime = Date.now();
+                if (nowTime - currentTime >= 10000) {
+                    onWakeupFail && onWakeupFail();
+                }
+            }, 10000);
+        }
+
+        function attachDocumentHide() {
+            // eslint-disable-next-line
+            let hiddenProperty = 'hidden' in document ? 'hidden' : ('webkitHidden' in document ? 'webkitHidden' : ('mozHidden' in document ? 'mozHidden' : null));
+            let visibilityChangeEvent = hiddenProperty.replace(
+                /hidden/i,
+                'visibilitychange'
+            );
+            let onVisibilityChange = function() {
+                if (document[hiddenProperty]) {
+                    console.log('scheme hidden');
+                    timer && clearTimeout(timer);
+                    debug("Disable timeout timer !");
+                }
+            };
+            document.addEventListener(visibilityChangeEvent, onVisibilityChange);
+        }
+
+        window.onload = function() {
+            var base = "rkapp://t.rock-chips.com/iot";
+            var url = location.search;
+            var target = base;
+            if (url.indexOf("?") != -1) {
+                var params = url.substr(1);
+                target = base + "?" + params;
+            } 
+
+            this.attachDocumentHide();
+            this.openByScheme(target, null, onSchemeFailed);
+        }
+    </script>
+</head>
+<body>
+    <a href="rkapp://t.rock-chips.com/iot">start app if not open</a>
+</body>
